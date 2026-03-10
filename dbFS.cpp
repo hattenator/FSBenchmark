@@ -1,22 +1,42 @@
-#include <fstream>
-#include <stdio.h>
+#define _FILE_OFFSET_BITS 64
+#include <cerrno>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+
+//#include <fstream>
+//#include <stdio.h>
 #include <ctime>
 #include <pthread.h>
 #ifndef THREADNUM
 #define THREADNUM 16
 #endif
 
-//#ifdef __CYGWIN__
-#include <stdint.h>
+
+//#include <stdint.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <sys/time.h>
-#define O_DSYNC 0
+#include <unistd.h>
+#include <stdio.h>
+
+#ifndef __sun
+#define USE_O_DSYNC 0
 #define O_LARGEFILE 0
+#endif
+
+#ifdef __sun
 #define llseek lseek64
+#else
+#define llseek lseek
+#endif
+
 #define offset_t unsigned long
+#ifdef WINDOWS
 #define fsync _commit
+#endif
+
 //typedef __int64 int64_t;
 
 //#endif
@@ -91,20 +111,19 @@ int main(int argc, char* argv[])
   }
   cout <<"Total WPS across all threads: "<<totalWriteSpeed<<endl;
 
-  delete testBuf;
+  delete[] testBuf;
   
   
   randomBuffer(streamBlock);
   streamingWrites();
   streamingReads();
-  delete testBuf;
+  delete[] testBuf;
   
   return 0;
 }
 
 void randomBuffer(unsigned long bufSize){
   cout<<"Filling "<<bufSize<<" byte random buffer\n";
-  testBuf=new char[bufSize];
   FILE *randFile;
   randFile=fopen("/dev/urandom","r");
   testBuf=new char[bufSize];
@@ -155,7 +174,7 @@ void * randomWrites(void *threadId){
   cout << "Average Write time: "<< (double)writeTime/writes/1000<< "ms\n";
   cout << "Writes per second: "<< (double)writes/((double)writeTime/1000000)<< "\n\n";
 
-  delete randNum;
+  delete[] randNum;
   return  ( new double ((double)writes/((double)writeTime/1000000) ));
 
 }
